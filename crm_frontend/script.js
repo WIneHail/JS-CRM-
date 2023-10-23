@@ -6,17 +6,20 @@ function createMainHeader() {
     const logo = document.createElement('img');
     logo.src = 'img/logo.svg';
     logo.classList.add('logo');
+    const searchForm = document.createElement('form');
+    searchForm.setAttribute('autocomplete', 'off');
     const searchBar = document.createElement('input');
     searchBar.classList.add('header__searchbar');
     searchBar.placeholder = "Введите запрос";
-    const searchBarList = document.createElement('ul');
-    searchBarList.classList.add('searchbar__list');
-    headerWrapper.append(logo, searchBar, searchBarList);
+    const searchBarWrapper = document.createElement('div');
+    searchBarWrapper.classList.add('searchbar__autocomplete');
+    searchBarWrapper.append(searchBar);
+    searchForm.append(searchBarWrapper);
+    headerWrapper.append(logo, searchForm);
 
     return {
         headerWrapper,
-        searchBar,
-        searchBarList,
+        searchBarWrapper,
     }
 }
 
@@ -175,7 +178,6 @@ async function createModalForm(createNew = false, clId, btn) {
     const modalFooter = document.createElement('div');
     modalFooter.classList.add('modal__footer');
     const modalNameList = createModalNameList(client);
-    console.log(client);
     const modalContacts = createModalContactsList(client);
     const modalFooterBtns = createModalFooterBtns(clId, modalBack, modalWindow, modalShadow);
     modalForm.append(modalNameList, modalContacts.contactsWrapper, modalFooter);
@@ -186,8 +188,7 @@ async function createModalForm(createNew = false, clId, btn) {
         modalFooter.append(modalFooterBtns.btnDelConfirm);
     }
     window.btnSave = modalFooterBtns.btnSave;
-    modalFooterBtns.btnSave.addEventListener('click', (e) => {
-        e.preventDefault();
+    modalFooterBtns.btnSave.addEventListener('click', () => {
         const clientForm = new FormData(modalForm);
         const clientKeys = ['lastName', 'firstName', 'middleName', 'lastUpd', 'contacts'];
         let correctedClient = [];
@@ -214,6 +215,8 @@ async function createModalForm(createNew = false, clId, btn) {
             correctedClient['createDate'] = client['createDate'];
         }
         modalFormValidate(client, correctedClient, modalForm, modalFormFieldSet)
+        history.pushState("", document.title, window.location.pathname);
+        window.location.reload();
     })
 
     const modalWrapper = document.querySelector('.modal__wrap');
@@ -226,6 +229,8 @@ async function createModalForm(createNew = false, clId, btn) {
 }
 
 async function modalFormValidate(client, correctedClient, modalForm, modalFormFieldSet) {
+    console.log(client);
+    console.log(correctedClient);
     const modalRequiredInputs = modalForm.querySelectorAll('[required]');
     let valid = true;
     modalRequiredInputs.forEach(elem => {
@@ -358,8 +363,7 @@ function createModalContactsList(client) {
     contactsBtnWrapper.append(contactsBtnNewContact);
     contactsBtnNewContact.classList.add('modal__btn');
     contactsBtnNewContact.textContent = 'Добавить контакт';
-    contactsBtnNewContact.addEventListener('click', (e) => {
-        e.preventDefault();
+    contactsBtnNewContact.addEventListener('click', () => {
         if (!contactsList.innerHTML) {
             errorDissmis(contactsWrapper);
         }
@@ -415,8 +419,7 @@ function createModalContactForm(contact, list, btn) {
     contactsGroupInput.placeholder = "Введите данные контакта";
     const contactsGroupBtn = document.createElement('button');
     contactsGroupBtn.classList.add('form__del');
-    contactsGroupBtn.addEventListener('click', (e) => {
-        e.preventDefault();
+    contactsGroupBtn.addEventListener('click', () => {
         contactsGroup.remove();
         contactsSummary = document.querySelectorAll('.form__group');
         if (contactsSummary.length < 11) {
@@ -461,6 +464,7 @@ function createModalFooterBtns(clId, modalBack, modalWindow, modalShadow) {
     btnDel.addEventListener('click', () => {
         modalDismiss(modalBack, modalWindow, modalShadow);
         onDel(clId);
+        window.location.reload();
     })
     const btnDelConfirm = document.createElement('button');
     btnDelConfirm.textContent = 'Удалить клиента';
@@ -473,8 +477,7 @@ function createModalFooterBtns(clId, modalBack, modalWindow, modalShadow) {
     const btnCancel = document.createElement('btn');
     btnCancel.textContent = 'Отмена';
     btnCancel.classList.add('modal__btn-cancel');
-    btnCancel.addEventListener('click', (e) => {
-        e.preventDefault();
+    btnCancel.addEventListener('click', () => {
         modalDismiss(modalBack, modalWindow, modalShadow);
     })
 
@@ -495,6 +498,7 @@ function modalPanelsTransfer(modalElem, clId) {
 }
 
 async function onSave(client, newClient) {
+    console.log(client);
     let methodType;
     let link;
     if (client) {
@@ -570,7 +574,8 @@ function createMainFooter() {
 
 function createTabRow(client) {
     const bodyTabRow = document.createElement('tr');
-    bodyTabRow.classList.add('body__row')
+    bodyTabRow.classList.add('body__row');
+    bodyTabRow.id = `id-${client['id']}`;
     fullName = `${client['lastName']} ${client['firstName']} ${client['middleName']}`
     const bodyTabDataStructural = ['id', 'fullName', 'createDate', 'lastUpd', 'contacts', 'functional'];
     bodyTabDataStructural.forEach(elem => {
@@ -669,21 +674,24 @@ function createContactLink(type, elem, pref) {
 }
 
 function searchArr(clientsArr, value) {
-    if (value === undefined || value == '') {
-        const allBtns = document.querySelectorAll('.head__btn');
-        allBtns.forEach(elem => {
-            const btnKey = elem.dataset.key;
-            elem.onclick = function () {
-                fillTabWithSorting(btnKey, clientsArr);
-            }
-        })
-        return clientsArr;
-    }
-    value = value.toLowerCase();
+    // if (value === undefined || value == '') {
+    //     const allBtns = document.querySelectorAll('.head__btn');
+    //     allBtns.forEach(elem => {
+    //         const btnKey = elem.dataset.key;
+    //         elem.onclick = function () {
+    //             fillTabWithSorting(btnKey, clientsArr);
+    //         }
+    //     })
+    //     return clientsArr;
+    // }
+    value = value.toLowerCase().replace(/ /g, '');
+    console.log(value);
     let foundClientArr = clientsArr.filter(function (elem) {
         return elem.firstName.toLowerCase().includes(value) ||
             elem.middleName.toLowerCase().includes(value) ||
             elem.lastName.toLowerCase().includes(value) ||
+            elem.firstName.concat(elem.lastName, elem.middleName).toLowerCase().includes(value) ||
+            elem.lastName.concat(elem.firstName, elem.middleName).toLowerCase().includes(value) ||
             new Date(elem.createDate).toLocaleDateString().includes(new Date(value).toLocaleDateString()) ||
             elem.createDate.includes(value) ||
             new Date(elem.lastUpd).toLocaleDateString().includes(new Date(value).toLocaleDateString()) ||
@@ -693,13 +701,13 @@ function searchArr(clientsArr, value) {
             })
     })
 
-    const allBtns = document.querySelectorAll('.head__btn');
-    allBtns.forEach(elem => {
-        const btnKey = elem.dataset.key;
-        elem.onclick = function () {
-            fillTabWithSorting(btnKey, foundClientArr);
-        }
-    })
+    // const allBtns = document.querySelectorAll('.head__btn');
+    // allBtns.forEach(elem => {
+    //     const btnKey = elem.dataset.key;
+    //     elem.onclick = function () {
+    //         fillTabWithSorting(btnKey, foundClientArr);
+    //     }
+    // })
     return foundClientArr;
 }
 
@@ -779,19 +787,42 @@ async function dataBtnLoading(btn, clId) {
     return { data, res };
 }
 
-function searchAutoComplete(searchBarList, clientsArr) {
+function searchAutoComplete(searchBar, searchBarWrapper, clientsArr) {
     console.log(clientsArr);
+    if (searchBarWrapper.querySelector('.searchbar__list')) {
+        searchBarWrapper.querySelector('.searchbar__list').remove();
+    };
+    const searchBarList = document.createElement('div');
+    searchBarList.classList.add('searchbar__list');
+    searchBarWrapper.append(searchBarList);
     searchBarList.innerHTML = '';
     clientsArr.forEach(elem => {
-        const searchBarItem = document.createElement('li');
+        const searchBarItem = document.createElement('div');
         searchBarItem.classList.add('searchbar__item');
-        const searchBarItemLink = document.createElement('a');
-        searchBarItemLink.classList.add('searchbar__link');
-        searchBarItemLink.textContent = `${elem['firstName']} ${elem['lastName']}`;
-        searchBarItem.append(searchBarItemLink);
+        searchBarItem.textContent = `${elem['firstName']} ${elem['lastName']}`;
+
+        searchBarItem.addEventListener('click', () => {
+            const tabElem = document.querySelector(`#id-${elem["id"]}`);
+            console.log(tabElem);
+            tabElem.classList.add('highlited');
+            tabElem.scrollIntoView({ behavior: "smooth" });
+            searchBarWrapper.querySelector('.searchbar__list').remove();
+            searchBar.value = "";
+            function transitionWait() {
+                tabElem.classList.remove('highlited');
+                tabElem.removeEventListener('transitionend', transitionWait);
+            }
+            tabElem.addEventListener('transitionend', transitionWait);
+        })
+        searchBarItem.addEventListener('mouseover', (e) => {
+            const searchBarItemList = searchBarWrapper.querySelectorAll('.searchbar__item');
+            searchBarItemList.forEach(elem => {
+                elem.classList.remove('active');
+            });
+            e.target.classList.add('active');
+        })
         searchBarList.prepend(searchBarItem);
     })
-
 }
 
 async function createPageApp() {
@@ -816,6 +847,8 @@ async function createPageApp() {
     title.classList.add('title');
     mainContainer.append(title);
 
+    const tabWrapper = document.createElement('div');
+    tabWrapper.classList.add('main__wrapper');
     const tab = document.createElement('table');
     tab.classList.add('table');
     const tabHeader = createTabHead();
@@ -823,9 +856,10 @@ async function createPageApp() {
     const tabBody = document.createElement('tbody');
     tabBody.classList.add('table__body', 'body');
     tab.append(tabBody);
+    tabWrapper.append(tab);
 
 
-    mainContainer.append(tab);
+    mainContainer.append(tabWrapper);
     container.append(mainContainer);
     const footer = createMainFooter();
     mainContainer.append(footer);
@@ -846,24 +880,61 @@ async function createPageApp() {
         }
     })
 
+    let i = -1;
 
-    const searchBar = header.searchBar;
-    const searchBarList = header.searchBarList;
+    const searchBarWrapper = header.searchBarWrapper;
+    const searchBar = searchBarWrapper.querySelector('.header__searchbar');
     let timerId;
     searchBar.addEventListener('input', async () => {
         let searchBarData = searchBar.value;
-        clearTimeout(timerId);
-        if (searchBarData == '') {
-            searchAutoComplete(searchBarList, []);
+        i = -1;
+        if (!searchBarData) {
+            searchAutoComplete(searchBar, searchBarWrapper, []);
         }
+        clearTimeout(timerId);
         timerId = setTimeout(async () => {
             const actualClientListArr = await dataLoading(tabBody);
             const newClientArr = searchArr(actualClientListArr, searchBarData);
-            // fillTabWithSorting("id", newClientArr, true);
-            searchAutoComplete(searchBarList, newClientArr)
+            searchAutoComplete(searchBar, searchBarWrapper, newClientArr);
         }, 300);
         if (!searchBarData) {
             clearTimeout(timerId);
+        }
+    })
+
+    searchBar.addEventListener('keydown', (e) => {
+        const searchBarItemList = searchBarWrapper.querySelectorAll('.searchbar__item');
+        if (e.keyCode == 40) {
+            if (i < searchBarItemList.length - 1) {
+                searchBarItemList.forEach(elem => {
+                    elem.classList.remove('active');
+                });
+                i++;
+                searchBarItemList[i].classList.add('active');
+            } else if (i == searchBarItemList.length - 1) {
+                searchBarItemList.forEach(elem => {
+                    elem.classList.remove('active');
+                });
+                i = 0;
+                searchBarItemList[i].classList.add('active');
+            }
+        } else if (e.keyCode == 38) {
+            if (i > 0) {
+                searchBarItemList.forEach(elem => {
+                    elem.classList.remove('active');
+                });
+                i--;
+                searchBarItemList[i].classList.add('active');
+            } else if (i = -1) {
+                searchBarItemList.forEach(elem => {
+                    elem.classList.remove('active');
+                });
+                i = searchBarItemList.length - 1;
+                searchBarItemList[i].classList.add('active');
+            }
+        } else if (e.keyCode == 13) {
+            e.preventDefault();
+            searchBarItemList[i].click();
         }
     })
 
