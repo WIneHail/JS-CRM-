@@ -188,7 +188,8 @@ async function createModalForm(createNew = false, clId, btn) {
         modalFooter.append(modalFooterBtns.btnDelConfirm);
     }
     window.btnSave = modalFooterBtns.btnSave;
-    modalFooterBtns.btnSave.addEventListener('click', () => {
+    modalFooterBtns.btnSave.addEventListener('click', async (e) => {
+        e.preventDefault();
         const clientForm = new FormData(modalForm);
         const clientKeys = ['lastName', 'firstName', 'middleName', 'lastUpd', 'contacts'];
         let correctedClient = [];
@@ -214,9 +215,21 @@ async function createModalForm(createNew = false, clId, btn) {
         } else {
             correctedClient['createDate'] = client['createDate'];
         }
-        modalFormValidate(client, correctedClient, modalForm, modalFormFieldSet)
-        history.pushState("", document.title, window.location.pathname);
-        window.location.reload();
+        const valid = modalFormValidate(correctedClient, modalForm);
+
+
+        if (valid) {
+            modalFormFieldSet.disabled = true;
+            const saveResult = await onSave(client, correctedClient);
+            console.log(saveResult.status);
+            if (saveResult.status != 201 && saveResult.status != 200) {
+                errorsHandler(saveResult.status, saveResult.data);
+                modalFormFieldSet.disabled = false;
+            } else {
+                history.pushState("", document.title, window.location.pathname);
+                window.location.reload();
+            }
+        };
     })
 
     const modalWrapper = document.querySelector('.modal__wrap');
@@ -228,8 +241,7 @@ async function createModalForm(createNew = false, clId, btn) {
     })
 }
 
-async function modalFormValidate(client, correctedClient, modalForm, modalFormFieldSet) {
-    console.log(client);
+function modalFormValidate(correctedClient, modalForm) {
     console.log(correctedClient);
     const modalRequiredInputs = modalForm.querySelectorAll('[required]');
     let valid = true;
@@ -261,17 +273,8 @@ async function modalFormValidate(client, correctedClient, modalForm, modalFormFi
             valid = false;
         }
     })
-    if (valid) {
-        modalFormFieldSet.disabled = true;
-        const saveResult = await onSave(client, correctedClient);
-        console.log(saveResult.status);
-        if (saveResult.status != 201 && saveResult.status != 200) {
-            errorsHandler(saveResult.status, saveResult.data);
-            modalFormFieldSet.disabled = false;
-        } else {
-            history.pushState("", document.title, window.location.pathname);
-        }
-    }
+
+    return valid;
 }
 
 function errorDissmis(block) {
